@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<!--
+Made by GitHubUser331
+
+https://github.com/githubuser331
+
+Use this sample HTML template with JS logic integrated.
+
+To setup server with nodejs and other instructions, please read the README.MD file at
+
+https://github.com/githubuser331/simplechatapp
+
+thanks for using :)
+
+-->
+
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Text App</title>
+</head>
+<body style="font-family: sans-serif; margin: 20px;">
+    <!-- Elements for IP and Port configuration -->
+    <div style="margin-bottom: 10px;">
+        <input type="text" id="serverIpInput" placeholder="Server IP (e.g., 192.168.1.100)" style="width: calc(60% - 70px); padding: 8px;">
+        <input type="text" id="serverPortInput" placeholder="Port (e.g., 3000)" style="width: calc(40% - 70px); padding: 8px; margin-left: 5px;">
+        <button id="connectButton" style="padding: 8px 12px; margin-left: 5px;">Connect</button>
+    </div>
+
+    <div id="messages" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px;"></div>
+    <input type="text" id="messageInput" placeholder="Type your message..." style="width: calc(100% - 70px); padding: 8px;" disabled>
+    <button id="sendButton" style="padding: 8px 12px; margin-left: 5px;" disabled>Send</button>
+
+    <br>
+
+    <p>Made by (Your name)</p>
+
+ <p>Original template by <a href="https://github.com/githubuser331/">GitHubUser331</a></p>
+
+    <script>
+        // generate a random username..
+        
+        
+        const username = `User${Math.floor(Math.random() * 1000)}`;
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // elements for IP and Port configuration
+        
+        const serverIpInput = document.getElementById('serverIpInput');
+        const serverPortInput = document.getElementById('serverPortInput');
+        const connectButton = document.getElementById('connectButton');
+
+        let ws = null; // WebSocket instance, initially null
+
+        // Function to update message input and send button based on connection status
+        const setChatInputState = (enabled) => {
+            messageInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            if (enabled) {
+                messageInput.focus();
+            }
+        };
+
+        // logic to establish WebSocket connection
+        
+        const connectToServer = () => {
+            const serverIp = serverIpInput.value.trim();
+            const serverPort = serverPortInput.value.trim();
+
+            if (!serverIp || !serverPort) {
+                messagesDiv.innerHTML += `<p style="color: orange;"><em>Please enter both IP address and Port.</em></p>`;
+                return;
+            }
+
+            // if an existing WebSocket connection is open or connecting, close it first
+            
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                messagesDiv.innerHTML += `<p style="color: gray;"><em>Closing existing connection...</em></p>`;
+                ws.close();
+            }
+
+            const wsUrl = `ws://${serverIp}:${serverPort}`;
+            messagesDiv.innerHTML += `<p style="color: gray;"><em>Attempting to connect to ${wsUrl}...</em></p>`;
+            console.log(`Attempting WebSocket connection to: ${wsUrl}`); 
+
+// log the URL for debugging
+
+            // disables chat inputs while trying to connect
+            
+            setChatInputState(false);
+            connectButton.disabled = true; 
+
+// temporarily disable connect button during connection attempt
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('Connected to chat server');
+                    messagesDiv.innerHTML += `<p style="color: green;"><em>Successfully connected to server!</em></p>`;
+                    messagesDiv.innerHTML += `<p style="color: gray;"><em>You joined as ${username}</em></p>`;
+                    setChatInputState(true); // enable chat input fields
+                    connectButton.disabled = false; // re enable connect button
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    messagesDiv.innerHTML += `<p><strong>${data.user}:</strong> ${data.message}</p>`;
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                };
+
+                ws.onclose = () => {
+                    console.log('Disconnected from chat server');
+                    messagesDiv.innerHTML += `<p style="color: red;"><em>Disconnected from server.</em></p>`;
+                    setChatInputState(false); // Disable chat inputs
+                    connectButton.disabled = false; // re enables connect button
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    messagesDiv.innerHTML += `<p style="color: red;"><em>Connection failed. Please check the IP, Port, and ensure the server is running and not blocked by a firewall.</em></p>`;
+                    setChatInputState(false); // disable chat input
+                    connectButton.disabled = false; // re enables comnect button
+                };
+            } catch (e) {
+                console.error("Failed to create WebSocket instance:", e);
+                messagesDiv.innerHTML += `<p style="color: red;"><em>Invalid IP/Port format or WebSocket creation failed.</em></p>`;
+                setChatInputState(false); // disables chat input 
+                connectButton.disabled = false; // enables connect button again (very imp)
+            }
+        };
+
+        // function to send message
+        
+        const sendMessage = () => {
+            const messageText = messageInput.value.trim();
+            if (messageText && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ user: username, message: messageText }));
+                messageInput.value = '';
+            }
+        };
+
+        // event listener logic
+        
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // triggers connection when connect button is pressed
+        
+        
+        connectButton.addEventListener('click', connectToServer);
+        serverIpInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connectToServer();
+            }
+        });
+        serverPortInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connectToServer();
+            }
+        });
+
+        // sets default values in ip and port fields when initialised
+        
+        serverIpInput.value = 'localhost';
+        serverPortInput.value = '3000';
+        setChatInputState(false); 
+        
+        // disables chat input initially
+        
+    </script>
+</body>
+</html>
