@@ -65,6 +65,9 @@ You can visit <a href="https://docs.npmjs.com/downloading-and-installing-node-js
 You need to follow each step carefully to increase the chance of success. 
 
 
+_**This app also supports uploading and sending images through the server.**_
+
+
 If any you have any concerns, please raise an issue here.
 
 Instructions subject to be updated.
