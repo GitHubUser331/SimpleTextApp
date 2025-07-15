@@ -37,6 +37,8 @@ The **_textapp.html_** file can be shared with others to test it.
 
 It should show a message that the websocket server is successfully started on a port (default is 3000).
 
+_**TIP:** You can stop the server by force closing the terminal/command prompt window. **For Termux:** Press ```Ctrl + C``` keys simultaneously to make NodeJS ignore commands and stop the server._
+
 - Now, open the **_textapp.html_** file in browser (on any device), and *enter the IP address of the device, on which the NodeJS server is hosted.*
 
 - Press connect, and it should connect to the server.
