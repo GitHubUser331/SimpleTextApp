@@ -7,12 +7,12 @@ To create a simple texting app, you can use the HTML and NodeJS server template 
 
 ### Getting Started
 
-First of all, download the repository by either cloning it or pressing the green code button, then clicking on 'Download ZIP' to download the source code.
+First of all, download the repository by either cloning it or by pressing the green code button, then clicking on **'Download ZIP'** to download the source code.
 
 Clone the repository using:
 
 ```bash
-$ git clone https://githubuser331/simpletextapp/
+git clone https://github.com/githubuser331/simpletextapp/
 ```
 
 Now, you can customize the **_textapp.html_** file, with the **_server.js_** file as per your choice.
@@ -28,9 +28,12 @@ The **_textapp.html_** file can be shared with others to test it.
 
 
 
-- Open command prompt in the repository folder/directory where the **_server.js_** file is present.
+- Open command prompt **only** in the repository folder/directory where the **_server.js_** file is present.
 
-- Type ``` node server.js ```and press enter.
+- We need to initialize NodeJS NPM just in case if the websocket library doesn't load. To do this, type ```npm init -y``` and press enter.
+
+
+- Type ``` node server.js ```and press enter to start the server.
 
 It should show a message that the websocket server is successfully started on a port (default is 3000).
 
