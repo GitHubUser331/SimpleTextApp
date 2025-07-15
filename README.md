@@ -77,7 +77,7 @@ Without the contribution of the following, this project wouldn't be possible:
 
 ## License
 
-This project is licensed under the <a href="/LICENSE.">Apache License 2.0.</a>
+This project is licensed under the <a href="https://github.com/GitHubUser331/SimpleTextApp?tab=Apache-2.0-1-ov-file">Apache License 2.0.</a>
 
 ### Made with ☕ by GitHubUser331.
 
