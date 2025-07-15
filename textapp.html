@@ -29,44 +29,56 @@ thanks for using :)
         <button id="connectButton" style="padding: 8px 12px; margin-left: 5px;">Connect</button>
     </div>
 
+    <!-- Elements for username configuration -->
+    <div style="margin-bottom: 10px;">
+        <input type="text" id="usernameInput" placeholder="Enter your username" style="width: calc(100% - 70px); padding: 8px;">
+        <button id="setUsernameButton" style="padding: 8px 12px; margin-left: 5px;">Set Username</button>
+    </div>
+
     <div id="messages" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px;"></div>
-    <input type="text" id="messageInput" placeholder="Type your message..." style="width: calc(100% - 70px); padding: 8px;" disabled>
-    <button id="sendButton" style="padding: 8px 12px; margin-left: 5px;" disabled>Send</button>
+    
+    <!-- Input for message and buttons for send/image upload -->
+    <div>
+        <input type="text" id="messageInput" placeholder="Type your message..." style="width: calc(100% - 150px); padding: 8px;" disabled>
+        <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
+        <button id="uploadImageButton" style="padding: 8px 12px; margin-left: 5px;" disabled>Upload Image</button>
+        <button id="sendButton" style="padding: 8px 12px; margin-left: 5px;" disabled>Send</button>
+    </div>
 
     <br>
 
     <p>Made by (Your name)</p>
-
- <p>Original template by <a href="https://github.com/githubuser331/">GitHubUser331</a></p>
+    <p>Original template by <a href="https://github.com/githubuser331/">GitHubUser331</a></p>
 
     <script>
-        // generate a random username..
-        
-        
-        const username = `User${Math.floor(Math.random() * 1000)}`;
+        let username = `User${Math.floor(Math.random() * 1000)}`;
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
 
-        // elements for IP and Port configuration
-        
         const serverIpInput = document.getElementById('serverIpInput');
         const serverPortInput = document.getElementById('serverPortInput');
         const connectButton = document.getElementById('connectButton');
 
-        let ws = null; // WebSocket instance, initially null
+        const usernameInput = document.getElementById('usernameInput');
+        const setUsernameButton = document.getElementById('setUsernameButton');
 
-        // Function to update message input and send button based on connection status
+        const imageUploadInput = document.getElementById('imageUploadInput');
+        const uploadImageButton = document.getElementById('uploadImageButton');
+
+        let ws = null;
+
+        // Function to enable/disable chat input elements
         const setChatInputState = (enabled) => {
             messageInput.disabled = !enabled;
             sendButton.disabled = !enabled;
+            uploadImageButton.disabled = !enabled; // Disable/enable image upload button
             if (enabled) {
                 messageInput.focus();
             }
         };
 
-        // logic to establish WebSocket connection
-        
+        // Function to connect to the WebSocket server
         const connectToServer = () => {
             const serverIp = serverIpInput.value.trim();
             const serverPort = serverPortInput.value.trim();
@@ -76,8 +88,7 @@ thanks for using :)
                 return;
             }
 
-            // if an existing WebSocket connection is open or connecting, close it first
-            
+            // Close existing connection if open or connecting
             if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
                 messagesDiv.innerHTML += `<p style="color: gray;"><em>Closing existing connection...</em></p>`;
                 ws.close();
@@ -87,65 +98,101 @@ thanks for using :)
             messagesDiv.innerHTML += `<p style="color: gray;"><em>Attempting to connect to ${wsUrl}...</em></p>`;
             console.log(`Attempting WebSocket connection to: ${wsUrl}`); 
 
-// log the URL for debugging
-
-            // disables chat inputs while trying to connect
-            
-            setChatInputState(false);
-            connectButton.disabled = true; 
-
-// temporarily disable connect button during connection attempt
+            setChatInputState(false); // Disable inputs while connecting
+            connectButton.disabled = true; // Disable connect button
 
             try {
                 ws = new WebSocket(wsUrl);
 
+                // Event handler for successful connection
                 ws.onopen = () => {
                     console.log('Connected to chat server');
                     messagesDiv.innerHTML += `<p style="color: green;"><em>Successfully connected to server!</em></p>`;
                     messagesDiv.innerHTML += `<p style="color: gray;"><em>You joined as ${username}</em></p>`;
-                    setChatInputState(true); // enable chat input fields
-                    connectButton.disabled = false; // re enable connect button
+                    setChatInputState(true); // Enable inputs
+                    connectButton.disabled = false; // Enable connect button
+                    // Send initial username to server
+                    ws.send(JSON.stringify({ type: 'username_set', user: username }));
                 };
 
+                // Event handler for incoming messages
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
-                    messagesDiv.innerHTML += `<p><strong>${data.user}:</strong> ${data.message}</p>`;
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    let messageHtml = '';
+
+                    if (data.type === 'username_taken') {
+                        // Handle case where requested username is taken
+                        const newUsername = `${data.requestedUsername}${Math.floor(Math.random() * 10000)}`;
+                        username = newUsername;
+                        messageHtml = `<p style="color: orange;"><em>Username "${data.requestedUsername}" is taken. You are now "${username}".</em></p>`;
+                        ws.send(JSON.stringify({ type: 'username_set', user: username })); // Send new username to server
+                    } else if (data.type === 'image') {
+                        // Handle incoming image messages
+                        messageHtml = `
+                            <p>
+                                <strong>${data.user}:</strong><br>
+                                <img src="${data.imageData}" alt="User uploaded image" style="max-width: 100%; height: auto;">
+                            </p>
+                        `;
+                    } else {
+                        // Handle regular text messages
+                        messageHtml = `
+                            <p><strong>${data.user}:</strong> ${data.message}</p>
+                        `;
+                    }
+                    messagesDiv.innerHTML += messageHtml;
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
                 };
 
+                // Event handler for connection close
                 ws.onclose = () => {
                     console.log('Disconnected from chat server');
                     messagesDiv.innerHTML += `<p style="color: red;"><em>Disconnected from server.</em></p>`;
-                    setChatInputState(false); // Disable chat inputs
-                    connectButton.disabled = false; // re enables connect button
+                    setChatInputState(false); // Disable inputs
+                    connectButton.disabled = false; // Enable connect button
                 };
 
+                // Event handler for WebSocket errors
                 ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
                     messagesDiv.innerHTML += `<p style="color: red;"><em>Connection failed. Please check the IP, Port, and ensure the server is running and not blocked by a firewall.</em></p>`;
-                    setChatInputState(false); // disable chat input
-                    connectButton.disabled = false; // re enables comnect button
+                    setChatInputState(false); // Disable inputs
+                    connectButton.disabled = false; // Enable connect button
                 };
             } catch (e) {
                 console.error("Failed to create WebSocket instance:", e);
                 messagesDiv.innerHTML += `<p style="color: red;"><em>Invalid IP/Port format or WebSocket creation failed.</em></p>`;
-                setChatInputState(false); // disables chat input 
-                connectButton.disabled = false; // enables connect button again (very imp)
+                setChatInputState(false); // Disable inputs
+                connectButton.disabled = false; // Enable connect button
             }
         };
 
-        // function to send message
-        
+        // Function to send a text message
         const sendMessage = () => {
             const messageText = messageInput.value.trim();
             if (messageText && ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ user: username, message: messageText }));
-                messageInput.value = '';
+                // Send message as JSON object with type 'text' (default)
+                ws.send(JSON.stringify({ type: 'text', user: username, message: messageText }));
+                messageInput.value = ''; // Clear input field
             }
         };
 
-        // event listener logic
-        
+        // Function to set the username
+        const setUsername = () => {
+            const newUsername = usernameInput.value.trim();
+            if (newUsername) {
+                username = newUsername;
+                messagesDiv.innerHTML += `<p style="color: blue;"><em>Your username is now set to: ${username}</em></p>`;
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    // Inform server about username change
+                    ws.send(JSON.stringify({ type: 'username_set', user: username }));
+                }
+            } else {
+                messagesDiv.innerHTML += `<p style="color: orange;"><em>Please enter a username.</em></p>`;
+            }
+        };
+
+        // Event listener for sending text messages
         sendButton.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -153,9 +200,7 @@ thanks for using :)
             }
         });
 
-        // triggers connection when connect button is pressed
-        
-        
+        // Event listeners for connecting to server
         connectButton.addEventListener('click', connectToServer);
         serverIpInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -168,13 +213,53 @@ thanks for using :)
             }
         });
 
-        // sets default values in ip and port fields when initialised
-        
+        // Event listeners for setting username
+        setUsernameButton.addEventListener('click', setUsername);
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                setUsername();
+            }
+        });
+
+        // Event listener for the image upload button
+        uploadImageButton.addEventListener('click', () => {
+            imageUploadInput.click(); // Trigger the hidden file input click
+        });
+
+        // Event listener for when a file is selected in the image input
+        imageUploadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Check if the selected file is an image
+                if (!file.type.startsWith('image/')) {
+                    messagesDiv.innerHTML += `<p style="color: orange;"><em>Please select an image file.</em></p>`;
+                    return;
+                }
+
+                const reader = new FileReader();
+                // When the file is read, convert it to Base64
+                reader.onloadend = () => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        // Send the image data as a Base64 string
+                        ws.send(JSON.stringify({
+                            type: 'image',
+                            user: username,
+                            imageData: reader.result // Base64 string
+                        }));
+                        imageUploadInput.value = ''; // Clear the file input
+                    } else {
+                        messagesDiv.innerHTML += `<p style="color: red;"><em>Not connected to server. Cannot upload image.</em></p>`;
+                    }
+                };
+                reader.readAsDataURL(file); // Read the file as a Data URL (Base64)
+            }
+        });
+
+        // Initialize input values and states
         serverIpInput.value = 'localhost';
         serverPortInput.value = '3000';
-        setChatInputState(false); 
-        
-        // disables chat input initially
+        usernameInput.value = username;
+        setChatInputState(false); // Chat inputs are disabled until connected
         
     </script>
 </body>
